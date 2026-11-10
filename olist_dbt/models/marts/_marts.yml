@@ -1,0 +1,131 @@
+version: 2
+
+models:
+  - name: dim_customer
+    description: "Une ligne par client réel, identifié par customer_unique_id."
+    columns:
+      - name: customer_key
+        description: "Clé technique générée, identifiant unique du client dans le gold."
+        tests:
+          - unique
+          - not_null
+      - name: customer_unique_id
+        description: "Identifiant d'origine de la vraie personne (et non customer_id, qui change à chaque commande)."
+        tests:
+          - unique
+          - not_null
+      - name: city
+        description: "Ville du client."
+      - name: state
+        description: "État du client (code à 2 lettres)."
+
+  - name: dim_product
+    description: "Une ligne par produit, avec la catégorie traduite en anglais."
+    columns:
+      - name: product_key
+        description: "Clé technique générée, identifiant unique du produit dans le gold."
+        tests:
+          - unique
+          - not_null
+      - name: product_id
+        description: "Identifiant d'origine du produit."
+        tests:
+          - unique
+          - not_null
+      - name: category
+        description: "Catégorie du produit en anglais (ou en portugais si aucune traduction n'existe, 'unknown' si manquante)."
+      - name: weight_g
+        description: "Poids du produit en grammes."
+      - name: photos_qty
+        description: "Nombre de photos de l'annonce."
+
+  - name: dim_seller
+    description: "Une ligne par vendeur."
+    columns:
+      - name: seller_key
+        description: "Clé technique générée, identifiant unique du vendeur dans le gold."
+        tests:
+          - unique
+          - not_null
+      - name: seller_id
+        description: "Identifiant d'origine du vendeur."
+        tests:
+          - unique
+          - not_null
+      - name: city
+        description: "Ville du vendeur."
+      - name: state
+        description: "État du vendeur."
+
+  - name: dim_date
+    description: "Calendrier : une ligne par jour de 2016 à 2019."
+    columns:
+      - name: date_key
+        description: "Date au format entier AAAAMMJJ (ex. 20171124)."
+        tests:
+          - unique
+          - not_null
+      - name: full_date
+        description: "Date complète."
+      - name: year
+        description: "Année."
+      - name: month
+        description: "Numéro du mois (1 à 12)."
+      - name: month_name
+        description: "Nom du mois."
+      - name: quarter
+        description: "Trimestre (1 à 4)."
+      - name: is_weekend
+        description: "Vrai si le jour est un samedi ou un dimanche."
+
+  - name: fact_sales
+    description: "Table de faits des ventes. Grain : une ligne par article d'une commande."
+    columns:
+      - name: sales_key
+        description: "Clé technique de la ligne de vente."
+        tests:
+          - unique
+          - not_null
+      - name: customer_key
+        description: "Lien vers dim_customer."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_customer')
+              field: customer_key
+      - name: product_key
+        description: "Lien vers dim_product."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_product')
+              field: product_key
+      - name: seller_key
+        description: "Lien vers dim_seller."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_seller')
+              field: seller_key
+      - name: date_key
+        description: "Lien vers dim_date (date d'achat)."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_date')
+              field: date_key
+      - name: order_id
+        description: "Identifiant de la commande (dimension dégénérée). Plusieurs articles peuvent partager le même order_id."
+      - name: order_status
+        description: "Statut de la commande (delivered, shipped, canceled...)."
+        tests:
+          - accepted_values:
+              values: ['delivered', 'shipped', 'canceled', 'unavailable', 'invoiced', 'processing', 'created', 'approved']
+      - name: price
+        description: "Prix de l'article, hors frais de livraison."
+      - name: freight_value
+        description: "Frais de livraison de l'article."
+      - name: total_item_value
+        description: "Prix + frais de livraison."
+      - name: delivery_delay_days
+        description: "Jours de retard par rapport à la date estimée (positif = en retard, négatif = en avance, vide = non livré)."
